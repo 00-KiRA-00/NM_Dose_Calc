@@ -29,6 +29,7 @@ export default function HomeTab({ onCalculationSaved }) {
   // ========== Decay Correction State ==========
   const [referenceType, setReferenceType] = useState('admin'); // 'admin' or 'scan'
   const [referenceDateTime, setReferenceDateTime] = useState('');
+  const [referenceDateOnly, setReferenceDateOnly] = useState('');
   const [useCurrentTime, setUseCurrentTime] = useState(true);
   const [decayResult, setDecayResult] = useState(null);
 
@@ -39,11 +40,11 @@ export default function HomeTab({ onCalculationSaved }) {
     setSelectedTracerId(tracers.length > 0 ? tracers[0].id : '');
   }, [selectedNuclide]);
 
-  // Prefill reference time with current time when "use current time" is checked
   useEffect(() => {
     if (useCurrentTime) {
       const now = new Date();
       setReferenceDateTime(now.toISOString().slice(0, 16));
+      setReferenceDateOnly(now.toISOString().slice(0, 10));
     }
   }, [useCurrentTime]);
 
@@ -67,7 +68,7 @@ export default function HomeTab({ onCalculationSaved }) {
   // ========== Main Dose Calculation ==========
   const handleCalculate = () => {
     setError('');
-    setDecayResult(null); // clear previous decay result
+    setDecayResult(null);
 
     const weightNum = parseFloat(weight);
     if (!weight || isNaN(weightNum) || weightNum <= 0) {
@@ -84,7 +85,6 @@ export default function HomeTab({ onCalculationSaved }) {
     const heightCmVal = height ? parseFloat(height) : null;
     const { years: ageYearsVal, months: ageMonthsVal } = getAgeInYearsAndMonths();
 
-    // Adult Webster + caps
     const { nominalMci, finalMci: websterCappedMci, factor: websterFactor, capped, capReason } = 
       calculateBaseDoseMci(tracer, weightNum);
 
@@ -164,14 +164,27 @@ export default function HomeTab({ onCalculationSaved }) {
     if (useCurrentTime) {
       refTime = new Date();
     } else {
-      if (!referenceDateTime) {
-        setError('Please select a reference date/time or use current time.');
-        return;
-      }
-      refTime = new Date(referenceDateTime);
-      if (isNaN(refTime.getTime())) {
-        setError('Invalid date/time.');
-        return;
+      const isLongLived = tracer.halfLifeHours > 100;
+      if (isLongLived) {
+        if (!referenceDateOnly) {
+          setError('Please select a reference date.');
+          return;
+        }
+        refTime = new Date(referenceDateOnly + 'T00:00:00');
+        if (isNaN(refTime.getTime())) {
+          setError('Invalid date.');
+          return;
+        }
+      } else {
+        if (!referenceDateTime) {
+          setError('Please select a reference date/time or use current time.');
+          return;
+        }
+        refTime = new Date(referenceDateTime);
+        if (isNaN(refTime.getTime())) {
+          setError('Invalid date/time.');
+          return;
+        }
       }
     }
 
@@ -180,14 +193,12 @@ export default function HomeTab({ onCalculationSaved }) {
     let explanation = '';
 
     if (referenceType === 'admin') {
-      // Reference time = administration time
       adminActivity = recommendedDose;
       const scanTime = new Date(refTime.getTime() + waiting.minutes * 60 * 1000);
       const decayFactorValue = Math.exp(-Math.LN2 * waitHours / tracer.halfLifeHours);
       scanActivity = adminActivity * decayFactorValue;
       explanation = `You administer ${adminActivity.toFixed(2)} mCi at ${refTime.toLocaleString()}. At scan time (${scanTime.toLocaleString()}), after ${waiting.minutes} min of decay, the activity will be ${scanActivity.toFixed(2)} mCi.`;
     } else {
-      // Reference time = scan time
       scanActivity = recommendedDose;
       const adminTime = new Date(refTime.getTime() - waiting.minutes * 60 * 1000);
       const decayFactorValue = Math.exp(-Math.LN2 * waitHours / tracer.halfLifeHours);
@@ -212,8 +223,8 @@ export default function HomeTab({ onCalculationSaved }) {
   };
 
   const nuclides = getAllNuclides();
+  const isLongLivedTracer = result?.tracer ? result.tracer.halfLifeHours > 100 : false;
 
-  // ========== JSX ==========
   return (
     <div className="tab-content home-tab">
       {/* Patient Information */}
@@ -295,7 +306,7 @@ export default function HomeTab({ onCalculationSaved }) {
         </div>
       )}
 
-      {/* Decay Correction Section - NEW VERSION */}
+      {/* Decay Correction Section – with conditional time/date input */}
       <div className="form-section" style={{ marginTop: 30 }}>
         <h2>Decay Correction – Time‑of‑dose planning</h2>
         <div className="info-box" style={{ marginBottom: 16, backgroundColor: '#fff3e0' }}>
@@ -323,18 +334,30 @@ export default function HomeTab({ onCalculationSaved }) {
             Use current date & time as reference
           </label>
           {!useCurrentTime && (
-            <input
-              type="datetime-local"
-              value={referenceDateTime}
-              onChange={(e) => setReferenceDateTime(e.target.value)}
-              style={{ width: '100%', marginTop: '8px' }}
-            />
+            <>
+              {isLongLivedTracer ? (
+                <input
+                  type="date"
+                  value={referenceDateOnly}
+                  onChange={(e) => setReferenceDateOnly(e.target.value)}
+                  style={{ width: '100%', marginTop: '8px' }}
+                />
+              ) : (
+                <input
+                  type="datetime-local"
+                  value={referenceDateTime}
+                  onChange={(e) => setReferenceDateTime(e.target.value)}
+                  style={{ width: '100%', marginTop: '8px' }}
+                />
+              )}
+              <small style={{ display: 'block', marginTop: 4, color: '#687076' }}>
+                {referenceType === 'admin'
+                  ? 'Reference time = when you give the injection.'
+                  : 'Reference time = when the scan is performed.'}
+                {isLongLivedTracer && ' For long‑lived tracers (¹³¹I), only date is needed – time assumed at midnight.'}
+              </small>
+            </>
           )}
-          <small style={{ display: 'block', marginTop: 4, color: '#687076' }}>
-            {referenceType === 'admin'
-              ? 'Reference time = when you give the injection.'
-              : 'Reference time = when the scan is performed.'}
-          </small>
         </div>
 
         <div className="form-group">
@@ -380,4 +403,3 @@ export default function HomeTab({ onCalculationSaved }) {
     </div>
   );
 }
-
