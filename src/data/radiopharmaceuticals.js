@@ -336,6 +336,33 @@ export const RADIOPHARMACEUTICALS = [
     source: "SNMMI 2024",
     notes: "Diagnostic scan for neuroblastoma/pheochromocytoma.",
     halfLifeHours: 192.48
+  },
+    // ========== Generator Parents (for decay correction only) ==========
+  {
+    id: "mo99",
+    name: "Molybdenum-99",
+    nuclide: "99Mo",
+    indication: "Generator Parent",
+    refMci: null,
+    refWeightKg: null,
+    minMci: null,
+    maxMci: null,
+    source: "IAEA / NRC",
+    notes: "Parent of ⁹⁹ᵐTc generator. Half‑life: 66 hours.",
+    halfLifeHours: 66.0
+  },
+  {
+    id: "ge68",
+    name: "Germanium-68",
+    nuclide: "68Ge",
+    indication: "Generator Parent",
+    refMci: null,
+    refWeightKg: null,
+    minMci: null,
+    maxMci: null,
+    source: "IAEA / NIST",
+    notes: "Parent of ⁶⁸Ga generator. Half‑life: 271 days (6504 hours).",
+    halfLifeHours: 6504.0
   }
 ];
 

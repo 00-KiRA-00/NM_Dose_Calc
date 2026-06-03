@@ -8,7 +8,7 @@ export default function CalculatorTab() {
   const [decayNuclide, setDecayNuclide] = useState('18F');
   const [halfLifeHours, setHalfLifeHours] = useState(1.8295);
   
-  // For I-131: date only
+  // For long‑lived nuclides (half‑life > 100 hours): date only
   const [decayDate1, setDecayDate1] = useState(() => {
     const now = new Date();
     return now.toISOString().slice(0, 10);
@@ -18,7 +18,7 @@ export default function CalculatorTab() {
     return now.toISOString().slice(0, 10);
   });
   
-  // For other nuclides: time only (HH:MM)
+  // For short‑lived nuclides (half‑life <= 100 hours): time only (HH:MM)
   const [decayTime1, setDecayTime1] = useState(() => {
     const now = new Date();
     return now.toISOString().slice(11, 16); // "HH:MM"
@@ -48,7 +48,8 @@ export default function CalculatorTab() {
     }
   };
 
-  const isIodine131 = decayNuclide === '131I';
+  // Helper: true if half‑life > 24 hours (long‑lived)
+  const isLongLived = halfLifeHours > 24;
 
   const handleCalculateVolume = () => {
     setError('');
@@ -85,20 +86,20 @@ export default function CalculatorTab() {
     const now = new Date();
     const currentDateStr = now.toISOString().slice(0, 10); // YYYY-MM-DD
 
-    if (isIodine131) {
+    if (isLongLived) {
+      // Long‑lived: use selected dates at midnight local time
       if (!decayDate1 || !decayDate2) {
         setError('Please select both dates.');
         return;
       }
-      // Use date at midnight local time
       t1 = new Date(decayDate1 + 'T00:00:00');
       t2 = new Date(decayDate2 + 'T00:00:00');
     } else {
+      // Short‑lived: use current date + user‑selected times
       if (!decayTime1 || !decayTime2) {
         setError('Please select both times.');
         return;
       }
-      // Combine current date with user-provided time
       t1 = new Date(`${currentDateStr}T${decayTime1}:00`);
       t2 = new Date(`${currentDateStr}T${decayTime2}:00`);
     }
@@ -122,7 +123,7 @@ export default function CalculatorTab() {
         Calculate volume to draw from a stock vial (simple concentration, no decay). 
       </p>
 
-      {/* Stock Vial & Desired Dose (unchanged) */}
+      {/* Stock Vial & Desired Dose */}
       <div className="form-section">
         <h3>Stock Vial & Desired Dose</h3>
         <div className="form-group">
@@ -154,7 +155,7 @@ export default function CalculatorTab() {
         )}
       </div>
 
-      {/* Decay Correction – conditional date/time inputs */}
+      {/* Decay Correction – conditional date/time inputs based on half‑life */}
       <div className="form-section">
         <h3>Decay Correction</h3>
         <p className="section-description">
@@ -169,16 +170,16 @@ export default function CalculatorTab() {
         </div>
         <div className="info-box" style={{ marginBottom: 12 }}>
           Half‑life: <strong>{halfLifeHours.toFixed(2)} hours</strong>
-          {isIodine131 ? (
-            <span> (I‑131 – use dates, time ignored)</span>
+          {isLongLived ? (
+            <span> (long‑lived – use dates, time ignored)</span>
           ) : (
-            <span> (use times only – assumes same current date)</span>
+            <span> (short‑lived – use times only, assumes same current date)</span>
           )}
         </div>
 
         <div className="form-group">
-          <label>Initial {isIodine131 ? 'Date' : 'Time (HH:MM)'}</label>
-          {isIodine131 ? (
+          <label>Initial {isLongLived ? 'Date' : 'Time (HH:MM)'}</label>
+          {isLongLived ? (
             <input type="date" value={decayDate1} onChange={(e) => setDecayDate1(e.target.value)} />
           ) : (
             <input type="time" value={decayTime1} onChange={(e) => setDecayTime1(e.target.value)} step="60" />
@@ -191,8 +192,8 @@ export default function CalculatorTab() {
         </div>
 
         <div className="form-group">
-          <label>Target {isIodine131 ? 'Date' : 'Time (HH:MM)'}</label>
-          {isIodine131 ? (
+          <label>Target {isLongLived ? 'Date' : 'Time (HH:MM)'}</label>
+          {isLongLived ? (
             <input type="date" value={decayDate2} onChange={(e) => setDecayDate2(e.target.value)} />
           ) : (
             <input type="time" value={decayTime2} onChange={(e) => setDecayTime2(e.target.value)} step="60" />
@@ -202,6 +203,7 @@ export default function CalculatorTab() {
         <button className="calculate-button" onClick={handleDecayCalculate} style={{ backgroundColor: '#0a7ea4' }}>
           Calculate Activity at Target Time
         </button>
+
         {decayActivityOut !== null && (
           <div className="result-section" style={{ marginTop: 12 }}>
             <div className="dose-box" style={{ padding: '12px' }}>
@@ -209,7 +211,7 @@ export default function CalculatorTab() {
               <span className="dose-value">{decayActivityOut.toFixed(2)} mCi</span>
             </div>
             <div className="info-box">
-              Time difference: {((isIodine131 
+              Time difference: {((isLongLived 
                 ? new Date(decayDate2) - new Date(decayDate1) 
                 : (() => {
                     const now = new Date();
@@ -222,6 +224,7 @@ export default function CalculatorTab() {
           </div>
         )}
       </div>
+
       {error && <div className="error-message">{error}</div>}
     </div>
   );
