@@ -120,7 +120,6 @@ export default function CalculatorTab() {
       <h2>Pharmacy Dose Calculator</h2>
       <p className="section-description">
         Calculate volume to draw from a stock vial (simple concentration, no decay). 
-        Use the optional decay tool below to correct for decay.
       </p>
 
       {/* Stock Vial & Desired Dose (unchanged) */}
@@ -157,7 +156,7 @@ export default function CalculatorTab() {
 
       {/* Decay Correction – conditional date/time inputs */}
       <div className="form-section">
-        <h3>Optional: Decay Correction</h3>
+        <h3>Decay Correction</h3>
         <p className="section-description">
           Correct activity for radioactive decay between two times.
         </p>
@@ -203,7 +202,6 @@ export default function CalculatorTab() {
         <button className="calculate-button" onClick={handleDecayCalculate} style={{ backgroundColor: '#0a7ea4' }}>
           Calculate Activity at Target Time
         </button>
-
         {decayActivityOut !== null && (
           <div className="result-section" style={{ marginTop: 12 }}>
             <div className="dose-box" style={{ padding: '12px' }}>
@@ -224,7 +222,6 @@ export default function CalculatorTab() {
           </div>
         )}
       </div>
-
       {error && <div className="error-message">{error}</div>}
     </div>
   );

@@ -3,8 +3,13 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    outDir: 'dist',
+    emptyOutDir: true,
+  },
   server: {
     port: 5173,
-    open: true
-  }
+    open: true,
+  },
+  base: './',  // Use relative paths – works on Netlify, GitHub Pages, any static host
 })
